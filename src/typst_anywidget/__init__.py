@@ -42,8 +42,8 @@ class TypstInput(anywidget.AnyWidget):
     widgetWidth = traitlets.Unicode("484px").tag(sync=True)
     widgetHeight = traitlets.Unicode("").tag(sync=True)
 
-    def __init__(self, value: str = "", debounce: int = 250, svgInput: str = "", sysinput: dict = {}, compilerError: str = "", widgetWidth: str = "", widgetHeight: str = "") -> None:
-        super().__init__(value=value, debounce=debounce, svgInput=svgInput, sysinput=sysinput, compilerError=compilerError, widgetWidth=widgetWidth, widgetHeight=widgetHeight  )
+    def __init__(self, value: str = "", debounce: int = 250, svgInput: str = "", sysinput: dict = {}, compilerError: str = "", widgetWidth: str = "", widgetHeight: str = "", rootFolder: str = "./") -> None:
+        super().__init__(value=value, debounce=debounce, svgInput=svgInput, sysinput=sysinput, compilerError=compilerError, widgetWidth=widgetWidth, widgetHeight=widgetHeight)
         self.observe(self.compileTypst, names='value')
         self.compilerThreads = []
         self.inputQueue = queue.Queue()
@@ -51,7 +51,7 @@ class TypstInput(anywidget.AnyWidget):
         self.compilerWorker = threading.Thread(target=typstThreadCompiler, args=(self.inputQueue,self.outputQueue ))
         self.compilerWorker.start()
         self.op = None
-        self.rootFolder="./"
+        self.rootFolder = rootFolder
 
     def setRootFolder(self, value):
         self.rootFolder = value
