@@ -1,9 +1,20 @@
 import "./widget.css";
-import { minimalEditor } from "prism-code-editor/setups";
+import { minimalEditor, basicEditor } from "prism-code-editor/setups";
+import { insertText } from "prism-code-editor/utils";
 
 // Importing Prism grammars
 import "prism-code-editor/prism/languages/markup";
 import { languages } from "prism-code-editor/prism";
+
+import {
+  searchWidget,
+  highlightSelectionMatches,
+} from "prism-code-editor/search";
+import { editHistory } from "prism-code-editor/commands";
+import { cursorPosition } from "prism-code-editor/cursor";
+import { matchTags } from "prism-code-editor/match-tags";
+import { highlightBracketPairs } from "prism-code-editor/highlight-brackets";
+import { indentGuides } from "prism-code-editor/guides";
 
 //prism-typst
 import { Prismlanguagestyp } from "./prism-typst";
@@ -50,7 +61,7 @@ function render({ model, el }) {
   colunmContainer.appendChild(leftColumn);
   colunmContainer.appendChild(rightColumn);
 
-  const editor = minimalEditor(
+  const editor = basicEditor(
     editorContainer,
     {
       language: "typst",
@@ -63,15 +74,28 @@ function render({ model, el }) {
     model.set("value", editor.value);
     model.save_changes();
   }
+  function onSelectionChange() {
+    // console.log(editor.getSelection());
+    //console.log(editor.textarea.selectionStart);
+  }
   //Set some additional options.
   editor.setOptions({
     readOnly: false,
     lineNumbers: true,
     lineWrapping: true,
     wordWrap: true,
-    value: "",
     onUpdate: debounce(onUpdate, model.get("debounce")),
+    // onSelectionChange: onSelectionChange,
   });
+  editor.addExtensions(
+    highlightSelectionMatches(),
+    searchWidget(),
+    matchTags(),
+    highlightBracketPairs(),
+    cursorPosition(),
+    editHistory(),
+    indentGuides(),
+  );
   // Set the svg if svgInput parameter changes
   function on_svg_change() {
     svgContainer.innerHTML = model.get("svgInput");
@@ -83,8 +107,8 @@ function render({ model, el }) {
     if (editor.value == new_value) {
       // Do nothing
     } else {
-      // Handle the change
-      editor.value = new_value;
+      editor.textarea.value = new_value;
+      editor.update();
     }
   }
   model.on("change:value", on_change);
@@ -121,6 +145,53 @@ function render({ model, el }) {
     }
   }
   model.on("change:widgetHeight", on_height_change);
+  /////////////////
+  // Drag and drop
+  /////////////////
+  el.addEventListener("dragover", (e) => {
+    // if (e.preventDefault) {
+    //   e.preventDefault();
+    // }
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    e.dataTransfer.dropEffect = "copy";
+    // console.log(editor.extensions.cursor.getPosition());
+    console.log(editor.textarea.selectionStart);
+    console.log(editor.getSelection());
+    // e.preventDefault();
+  });
+  el.addEventListener("drop", (e) => {
+    console.log("Drop");
+    console.log(e.dataTransfer.getData("Text"));
+    console.log(editor.textarea.selectionStart);
+    // insertText(
+    //   editor,
+    //   "Hello World!",
+    //   editor.textarea.selectionStart,
+    //   editor.textarea.selectionEnd,
+    // );
+
+    // e.preventDefault();
+  });
+
+  // function dropHandler(ev) {
+  //   // Prevent default behavior (Prevent file from being opened)
+  //   ev.preventDefault();
+  //   let result = "";
+  //   // Use DataTransferItemList interface to access the file(s)
+  //   [...ev.dataTransfer.items].forEach((item, i) => {
+  //     // If dropped items aren't files, reject them
+  //     if (item.kind === "file") {
+  //       const file = item.getAsFile();
+  //       result += `• file[${i}].name = ${file.name}\n`;
+  //     }
+  //   });
+  //   console.log(result);
+  // }
+
+  // editorContainer.addEventListener("drop", dropHandler);
 
   el.appendChild(errorContainer);
   el.appendChild(colunmContainer);
