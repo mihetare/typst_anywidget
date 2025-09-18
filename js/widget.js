@@ -176,6 +176,11 @@ function render({ model, el }) {
     // e.preventDefault();
   });
 
+  el.addEventListener("dragstart", (e) => {
+    e.originalEvent.dataTransfer.setData("text", "anything");
+    // e.preventDefault();
+  });
+
   // function dropHandler(ev) {
   //   // Prevent default behavior (Prevent file from being opened)
   //   ev.preventDefault();
