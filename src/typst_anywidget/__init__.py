@@ -1,10 +1,12 @@
 import importlib.metadata
 import pathlib
+import queue
+import threading
+import time
+
 import anywidget
 import traitlets
 import typst
-import threading
-import queue
 
 try:
     __version__ = importlib.metadata.version("typst_anywidget")
@@ -13,23 +15,54 @@ except importlib.metadata.PackageNotFoundError:
 
 fonts = typst.Fonts()
 
-def typstThreadCompiler(inputQueue,outputQueue):
+
+# def typstThreadCompiler(inputQueue, outputQueue):
+#     while True:
+#         inputData = inputQueue.get()
+#         try:
+#             start = time.time()
+#             op = typst.compile(
+#                 inputData[0]["new"].encode("utf-8"),
+#                 format="svg",
+#                 sys_inputs=inputData[1],
+#                 font_paths=fonts,
+#                 root=inputData[2],
+#             )
+#             outputQueue.put([1, op])
+#             end = time.time()
+#             print(f"Total runtime of the program is {end - start} seconds")
+#         except Exception as e:
+#             outputQueue.put([-1, f"Error: {str(e)}"])
+#             continue
+
+
+def typstThreadCompiler(inputQueue, outputQueue):
     while True:
         inputData = inputQueue.get()
         try:
-            op = typst.compile(inputData[0]["new"].encode("utf-8"), format='svg', sys_inputs=inputData[1], font_paths=fonts, root=inputData[2])
+            # start = time.time()
+            op = inputData[3].compile(
+                inputData[0]["new"].encode("utf-8"),
+                format="svg",
+            )
             outputQueue.put([1, op])
+            # end = time.time()
+            # print(f"Total runtime of the program is {end - start} seconds")
         except Exception as e:
             outputQueue.put([-1, f"Error: {str(e)}"])
             continue
 
+
 class outputsvg_repr:
     def __init__(self, input):
         self.ip = input
+
     def setInput(self, input):
         self.ip = input
+
     def _repr_svg_(self):
-        return self.ip.decode('ASCII')
+        return self.ip.decode("ASCII")
+
 
 class TypstInput(anywidget.AnyWidget):
     _esm = pathlib.Path(__file__).parent / "static" / "widget.js"
@@ -42,16 +75,40 @@ class TypstInput(anywidget.AnyWidget):
     widgetWidth = traitlets.Unicode("484px").tag(sync=True)
     widgetHeight = traitlets.Unicode("").tag(sync=True)
 
-    def __init__(self, value: str = "", debounce: int = 250, svgInput: str = "", sysinput: dict = {}, compilerError: str = "", widgetWidth: str = "", widgetHeight: str = "", rootFolder: str = "./") -> None:
-        super().__init__(value=value, debounce=debounce, svgInput=svgInput, sysinput=sysinput, compilerError=compilerError, widgetWidth=widgetWidth, widgetHeight=widgetHeight)
-        self.observe(self.compileTypst, names='value')
+    def __init__(
+        self,
+        value: str = "",
+        debounce: int = 250,
+        svgInput: str = "",
+        sysinput: dict = {},
+        compilerError: str = "",
+        widgetWidth: str = "",
+        widgetHeight: str = "",
+        rootFolder: str = "./",
+    ) -> None:
+        super().__init__(
+            value=value,
+            debounce=debounce,
+            svgInput=svgInput,
+            sysinput=sysinput,
+            compilerError=compilerError,
+            widgetWidth=widgetWidth,
+            widgetHeight=widgetHeight,
+        )
+        self.observe(self.compileTypst, names="value")
         self.compilerThreads = []
         self.inputQueue = queue.Queue()
         self.outputQueue = queue.Queue()
-        self.compilerWorker = threading.Thread(target=typstThreadCompiler, args=(self.inputQueue,self.outputQueue ))
+        self.compilerWorker = threading.Thread(
+            target=typstThreadCompiler, args=(self.inputQueue, self.outputQueue)
+        )
         self.compilerWorker.start()
         self.op = None
         self.rootFolder = rootFolder
+
+        self.typstCompiler = typst.Compiler(
+            sys_inputs=self.sysinput, font_paths=fonts, root=self.rootFolder
+        )
 
     def setRootFolder(self, value):
         self.rootFolder = value
@@ -72,13 +129,15 @@ class TypstInput(anywidget.AnyWidget):
     def compileTypst(self, value):
         try:
             self.compilerError = ""
-            self.inputQueue.put([value, self.sysinput, self.rootFolder])
-            oqueueout=self.outputQueue.get(block=True)
-            if oqueueout[0]==-1:
+            self.inputQueue.put(
+                [value, self.sysinput, self.rootFolder, self.typstCompiler]
+            )
+            oqueueout = self.outputQueue.get(block=True)
+            if oqueueout[0] == -1:
                 self.compilerError = oqueueout[1]
             else:
                 self.op = oqueueout[1]
-                self.svgInput = self.op.decode('ASCII')
+                self.svgInput = self.op.decode("ASCII")
         except Exception as e:
             self.compilerError = f"Error in the result loop: {e}"
 
@@ -92,9 +151,14 @@ class TypstInput(anywidget.AnyWidget):
         return self.value
 
     def savePdf(self, filename=None):
-        if filename is not  None:
+        if filename is not None:
             try:
-                op = typst.compile(self.value.encode("utf-8"), format='pdf', sys_inputs=self.sysinput, font_paths=fonts)
+                op = typst.compile(
+                    self.value.encode("utf-8"),
+                    format="pdf",
+                    sys_inputs=self.sysinput,
+                    font_paths=fonts,
+                )
                 with open(filename, "wb") as f:
                     f.write(op)
                 return 1
