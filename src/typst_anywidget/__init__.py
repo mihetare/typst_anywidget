@@ -15,7 +15,6 @@ except importlib.metadata.PackageNotFoundError:
 
 fonts = typst.Fonts()
 
-
 # def typstThreadCompiler(inputQueue, outputQueue):
 #     while True:
 #         inputData = inputQueue.get()
@@ -37,6 +36,11 @@ fonts = typst.Fonts()
 
 
 def typstThreadCompiler(inputQueue, outputQueue):
+    # inputData = inputQueue.get()
+    # tCompiler = typst.Compiler(
+    #     sys_inputs=inputData[1], font_paths=fonts, root=inputData[2]
+    # )
+    # tCompiler = typst.Compiler()
     while True:
         inputData = inputQueue.get()
         try:
@@ -109,6 +113,9 @@ class TypstInput(anywidget.AnyWidget):
         self.typstCompiler = typst.Compiler(
             sys_inputs=self.sysinput, font_paths=fonts, root=self.rootFolder
         )
+        # tCompiler = typst.Compiler(
+        #     sys_inputs=self.sysinput, font_paths=fonts, root=self.rootFolder
+        # )
 
     def setRootFolder(self, value):
         self.rootFolder = value

@@ -109,16 +109,16 @@ function render({ model, el }) {
   }
   model.on("change:svgInput", on_svg_change);
   // Add on change function to listen to changes from python
-  function on_change() {
-    let new_value = model.get("value");
-    if (editor.value == new_value) {
-      // Do nothing
-    } else {
-      editor.value = new_value;
-      editor.update();
-    }
-  }
-  model.on("change:value", on_change);
+  // function on_change() {
+  //   let new_value = model.get("value");
+  //   if (editor.value == new_value) {
+  //     console.log("no change");
+  //   } else {
+  //     editor.value = new_value;
+  //     editor.update();
+  //   }
+  // }
+  // model.on("change:value", on_change);
   //Error message handler
   function on_error_change() {
     errorContainer.innerHTML = model.get("compilerError");
