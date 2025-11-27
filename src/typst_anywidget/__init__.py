@@ -111,7 +111,7 @@ class TypstInput(anywidget.AnyWidget):
         self.rootFolder = rootFolder
 
         self.typstCompiler = typst.Compiler(
-            sys_inputs=self.sysinput, font_paths=fonts, root=self.rootFolder
+            sys_inputs=self.sysinput, font_paths=typst.Fonts(), root=self.rootFolder
         )
         # tCompiler = typst.Compiler(
         #     sys_inputs=self.sysinput, font_paths=fonts, root=self.rootFolder
